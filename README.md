@@ -9,3 +9,5 @@ Run ```node server``` and go to ```localhost:1337/browser.html``` or ```localhos
 *Note: Currently, when using the WebAssembly version, you must currently have a canvas element on the page (can be hidden with CSS) with id ```theCanvas```. In the future this shouldn't be required.*
 
 ## Documentation to follow soon™
+
+To edit/compile the C++ demo, first run ```node runner.js```.

@@ -7,18 +7,6 @@
 <script>
 "use strict"
 
-const standardVertex = `
-    attribute vec3 position;
-    attribute vec2 textureCoord;
-
-    varying highp vec2 vTextureCoord;
-
-    void main() {
-        gl_Position = vec4(position, 1.0);
-        vTextureCoord = textureCoord;
-    }
-`
-
 const example1Fragment = `
     #ifdef GL_FRAGMENT_PRECISION_HIGH
         precision highp float;
@@ -112,7 +100,7 @@ window.addEventListener("load", () => {
         const gpu = new GPGPU({height: mapSpan, width: mapSpan})
         gpu.makeFrameBuffer()
         gpu.makeTexture(testData)
-        gpu.buildProgram(standardVertex, example1Fragment)
+        gpu.buildProgram(example1Fragment)
 
         gpu.addAttrib("position", {numElements: 3, stride: 20, offset: 0})
         gpu.addAttrib("textureCoord", {numElements: 2, stride: 20, offset: 12})
@@ -153,7 +141,7 @@ window.addEventListener("load", () => {
         const gpu = new GPGPU({height: mapSpan, width: mapSpan})
         gpu.makeFrameBuffer()
         gpu.makeTexture(testData)
-        gpu.buildProgram(standardVertex, example2Fragment)
+        gpu.buildProgram(example2Fragment)
 
         gpu.addAttrib("position", {numElements: 3, stride: 20, offset: 0})
         gpu.addAttrib("textureCoord", {numElements: 2, stride: 20, offset: 12})
@@ -197,7 +185,7 @@ window.addEventListener("load", () => {
         gpu.makeTexture(testData)
         gpu.makeTexture(testData)
         gpu.makeTexture(testData)
-        gpu.buildProgram(standardVertex, example3Fragment)
+        gpu.buildProgram(example3Fragment)
 
         gpu.addAttrib("position", {numElements: 3, stride: 20, offset: 0})
         gpu.addAttrib("textureCoord", {numElements: 2, stride: 20, offset: 12})

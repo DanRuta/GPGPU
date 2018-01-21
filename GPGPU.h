@@ -46,19 +46,28 @@ public:
     std::unordered_map<std::string, int> uniforms;
 
     GLuint program;
-    // std::vector<uint8_t> textures;
     std::vector<int> textures;
 
-    // uint8_t* textures;
     EMSCRIPTEN_WEBGL_CONTEXT_HANDLE gl;
 
-    // float standardGeometryVals[];
     float standardGeometryVals[20] = {
         -1.0,  1.0, 0.0, 0.0, 1.0,
         -1.0, -1.0, 0.0, 0.0, 0.0,
          1.0,  1.0, 0.0, 1.0, 1.0,
          1.0, -1.0, 0.0, 1.0, 0.0
     };
+
+    std::string standardVertex = R"V0G0N(
+        attribute vec3 position;
+        attribute vec2 textureCoord;
+
+        varying highp vec2 vTextureCoord;
+
+        void main() {
+            gl_Position = vec4(position, 1.0);
+            vTextureCoord = textureCoord;
+        }
+    )V0G0N";
 
     GPGPU(int h, int w) {
 
@@ -147,7 +156,11 @@ public:
         }
     }
 
-    void buildProgram (std::string &vertexSource, std::string &fragmentSource) {
+    void buildProgram (std::string &fragmentSource) {
+        buildProgram(fragmentSource, standardVertex);
+    }
+
+    void buildProgram (std::string &fragmentSource, std::string &vertexSource) {
 
         program = glCreateProgram();
         GLuint vertex = compileShader(&vertexSource, GL_VERTEX_SHADER);

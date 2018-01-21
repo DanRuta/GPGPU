@@ -5,18 +5,6 @@
 #include <EGL/egl.h>
 #include "../GPGPU.h"
 
-std::string standardVertex = R"V0G0N(
-    attribute vec3 position;
-    attribute vec2 textureCoord;
-
-    varying highp vec2 vTextureCoord;
-
-    void main() {
-        gl_Position = vec4(position, 1.0);
-        vTextureCoord = textureCoord;
-    }
-)V0G0N";
-
 std::string example1Fragment = R"V0G0N(
     #ifdef GL_FRAGMENT_PRECISION_HIGH
         precision highp float;
@@ -104,7 +92,7 @@ extern "C" {
         GPGPU gpu = GPGPU(128, 128);
         gpu.makeFrameBuffer();
         gpu.makeTexture(data);
-        gpu.buildProgram(standardVertex, example1Fragment);
+        gpu.buildProgram(example1Fragment);
 
         gpu.addAttrib("position", 3, 20, 0);
         gpu.addAttrib("textureCoord", 2, 20, 12);
@@ -131,7 +119,7 @@ extern "C" {
         GPGPU gpu = GPGPU(128, 128);
         gpu.makeFrameBuffer();
         gpu.makeTexture(data);
-        gpu.buildProgram(standardVertex, example2Fragment);
+        gpu.buildProgram(example2Fragment);
 
         gpu.addAttrib("position", 3, 20, 0);
         gpu.addAttrib("textureCoord", 2, 20, 12);
@@ -159,7 +147,7 @@ extern "C" {
         gpu.makeTexture(data);
         gpu.makeTexture(data);
         gpu.makeTexture(data);
-        gpu.buildProgram(standardVertex, example3Fragment);
+        gpu.buildProgram(example3Fragment);
 
         gpu.addAttrib("position", 3, 20, 0);
         gpu.addAttrib("textureCoord", 2, 20, 12);

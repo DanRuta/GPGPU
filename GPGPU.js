@@ -18,6 +18,18 @@ class GPGPU {
              1.0, -1.0, 0.0, 1.0, 0.0   // bottom right
         ])
 
+        this.standardVertex = `
+            attribute vec3 position;
+            attribute vec2 textureCoord;
+
+            varying highp vec2 vTextureCoord;
+
+            void main() {
+                gl_Position = vec4(position, 1.0);
+                vTextureCoord = textureCoord;
+            }
+        `
+
         if (gl) {
             this.gl = gl
             this.height = gl.drawingBufferHeight
@@ -80,7 +92,7 @@ class GPGPU {
         }
     }
 
-    buildProgram (vertexSource, fragmentSource) {
+    buildProgram (fragmentSource, vertexSource=this.standardVertex) {
         this.program = this.gl.createProgram()
         const vertex = this.compileShader(vertexSource, this.gl.VERTEX_SHADER)
         const fragment = this.compileShader(fragmentSource, this.gl.FRAGMENT_SHADER)
