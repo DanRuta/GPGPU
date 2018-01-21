@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GPGPU Examples</title>
+    <script src="./GPGPU.js"></script>
+</head>
+<script>
+"use strict"
+
+const standardVertex = `
+    attribute vec3 position;
+    attribute vec2 textureCoord;
+
+    varying highp vec2 vTextureCoord;
+
+    void main() {
+        gl_Position = vec4(position, 1.0);
+        vTextureCoord = textureCoord;
+    }
+`
+
+const example1Fragment = `
+    #ifdef GL_FRAGMENT_PRECISION_HIGH
+        precision highp float;
+    #else
+        precision mediump float;
+    #endif
+
+    uniform sampler2D texture;
+    varying vec2 vTextureCoord;
+
+
+    void main() {
+        gl_FragColor = texture2D(texture, vTextureCoord);
+    }
+`
+
+const example2Fragment = `
+    #ifdef GL_FRAGMENT_PRECISION_HIGH
+        precision highp float;
+    #else
+        precision mediump float;
+    #endif
+
+    uniform sampler2D texture;
+    varying vec2 vTextureCoord;
+
+    void main() {
+        gl_FragColor = texture2D(texture, vTextureCoord) * texture2D(texture, vTextureCoord);
+    }
+`
+
+const example3Fragment = `
+    #ifdef GL_FRAGMENT_PRECISION_HIGH
+        precision highp float;
+        uniform highp sampler2D texture1;
+        uniform highp sampler2D texture2;
+        uniform highp sampler2D texture3;
+    #else
+        precision mediump float;
+        uniform mediump sampler2D texture1;
+        uniform mediump sampler2D texture2;
+        uniform mediump sampler2D texture3;
+    #endif
+
+    varying vec2 vTextureCoord;
+    uniform float variable;
+
+    void main() {
+
+        vec4 pixel1 = texture2D(texture1, vTextureCoord);
+        vec4 pixel2 = texture2D(texture2, vTextureCoord);
+        vec4 pixel3 = texture2D(texture3, vTextureCoord);
+
+        // pixel3.r = 1.0;
+
+        gl_FragColor.r = pixel1.r + pixel2.r + pixel3.r + variable;
+        gl_FragColor.g = pixel1.g + pixel2.g + pixel3.g + variable;
+        gl_FragColor.b = pixel1.b + pixel2.b + pixel3.b + variable;
+        gl_FragColor.a = pixel1.a + pixel2.a + pixel3.a + variable;
+
+    }
+`
+
+let setupTimer
+let timer
+
+window.addEventListener("load", () => {
+
+    let testData
+    let mapSize
+    let mapSpan
+
+    const generateData = () => {
+
+        testData = new Float32Array(mapSize*4)
+
+        for (let i=0; i<mapSize*4; i++) {
+            testData[i] = i
+        }
+    }
+    mapSize = 2048
+    mapSpan = Math.sqrt(mapSize)
+    generateData()
+
+
+    example1GPU.addEventListener("click", () => {
+
+        const times = parseInt(counterInput.value)
+        setupTimer = Date.now()
+
+        const gpu = new GPGPU({height: mapSpan, width: mapSpan})
+        gpu.makeFrameBuffer()
+        gpu.makeTexture(testData)
+        gpu.buildProgram(standardVertex, example1Fragment)
+
+        gpu.addAttrib("position", {numElements: 3, stride: 20, offset: 0})
+        gpu.addAttrib("textureCoord", {numElements: 2, stride: 20, offset: 12})
+        timer = Date.now()
+
+        for (let t=0; t<times; t++) {
+            gpu.draw()
+        }
+
+        const end = Date.now()
+
+        console.log(`Example 1 (GPU - ${times} times): `, gpu.getPixels())
+        console.log(`Elapsed set-up: ${timer-setupTimer}`)
+        console.log(`Elapsed run: ${end-timer}`)
+    })
+
+    example1JS.addEventListener("click", () => {
+        const times = parseInt(counterInput.value)
+        timer = Date.now()
+
+        const data = new Float32Array(mapSize*4)
+
+        for (let t=0; t<times; t++) {
+            for (let i=0; i<mapSize*4; i++) {
+                data[i] = testData[i]
+            }
+        }
+
+        console.log("Example 1 (GPU) data:", data)
+        console.log(`Elapsed (${times} times): ${Date.now()-timer}`)
+    })
+
+    example2GPU.addEventListener("click", () => {
+
+        const times = parseInt(counterInput.value)
+        setupTimer = Date.now()
+
+        const gpu = new GPGPU({height: mapSpan, width: mapSpan})
+        gpu.makeFrameBuffer()
+        gpu.makeTexture(testData)
+        gpu.buildProgram(standardVertex, example2Fragment)
+
+        gpu.addAttrib("position", {numElements: 3, stride: 20, offset: 0})
+        gpu.addAttrib("textureCoord", {numElements: 2, stride: 20, offset: 12})
+
+        timer = Date.now()
+
+        for (let t=0; t<times; t++) {
+            gpu.draw()
+        }
+
+        const end = Date.now()
+
+        console.log(`Example 2 (GPU - ${times} times): `, gpu.getPixels())
+        console.log(`Elapsed set-up: ${timer-setupTimer}`)
+        console.log(`Elapsed run: ${end-timer}`)
+    })
+
+    example2JS.addEventListener("click", () => {
+        const times = parseInt(counterInput.value)
+        timer = Date.now()
+
+        const data = new Float32Array(mapSize*4)
+
+        for (let t=0; t<times; t++) {
+            for (let i=0; i<mapSize*4; i++) {
+                data[i] = testData[i] * testData[i]
+            }
+        }
+
+        console.log("Example 2 (JS) data:", data)
+        console.log(`Elapsed (${times} times): ${Date.now()-timer}`)
+    })
+
+    example3GPU.addEventListener("click", () => {
+
+        const times = parseInt(counterInput.value)
+        setupTimer = Date.now()
+
+        const gpu = new GPGPU({height: mapSpan, width: mapSpan})
+        gpu.makeFrameBuffer()
+        gpu.makeTexture(testData)
+        gpu.makeTexture(testData)
+        gpu.makeTexture(testData)
+        gpu.buildProgram(standardVertex, example3Fragment)
+
+        gpu.addAttrib("position", {numElements: 3, stride: 20, offset: 0})
+        gpu.addAttrib("textureCoord", {numElements: 2, stride: 20, offset: 12})
+
+        gpu.addUniform("variable", parseFloat(varInput.value))
+
+        timer = Date.now()
+
+        for (let t=0; t<times; t++) {
+            gpu.draw()
+        }
+
+        const end = Date.now()
+
+        console.log(`Example 3 (GPU - ${times} times): `, gpu.getPixels())
+        console.log(`Elapsed set-up: ${timer-setupTimer}`)
+        console.log(`Elapsed run: ${end-timer}`)
+    })
+
+
+    example3JS.addEventListener("click", () => {
+        const times = parseInt(counterInput.value)
+        timer = Date.now()
+
+        const data = new Float32Array(mapSize*4)
+        let variable = parseFloat(varInput.value)
+
+        for (let t=0; t<times; t++) {
+            for (let i=0; i<mapSize*4; i++) {
+                data[i] = testData[i] + testData[i] + testData[i] + variable
+            }
+        }
+
+        console.log("Example 3 (JS) data:", data)
+        console.log(`Elapsed (${times} times): ${Date.now()-timer}`)
+    })
+
+
+    mapSizeInput.addEventListener("change", () => {
+        mapSize = parseInt(mapSizeInput.value)
+        generateData()
+    })
+    mapSizeInput.addEventListener("keyup", () => {
+        mapSize = parseInt(mapSizeInput.value)
+        generateData()
+    })
+})
+</script>
+<body>
+Open the console to see the data logged out, alongside timings (in ms). Change the values below to see the perf diffences with different inputs.<br><br><br>
+
+    Iterations: <input id="counterInput" type="number" min="0" value="10000"><br><br>
+    Map size (square): <input id="mapSizeInput" type="number" min="0" value="2048"><br><br>
+
+    <hr>Identity function (x=x)<br>
+    <button id="example1GPU">Example 1 (GPU)</button>
+    <button id="example1JS">Example 1 (JS)</button>
+
+    <hr>Quadratic function (x=x*x)<br>
+    <button id="example2GPU">Example 2 (GPU)</button>
+    <button id="example2JS">Example 2 (JS)</button>
+
+    <hr>Element-wise addition across 3 identical arrays, + a variable: <input id="varInput" type="number" value="2"> <br>
+    <button id="example3GPU">Example 3 (GPU)</button>
+    <button id="example3JS">Example 3 (JS)</button>
+    <hr>
+
+</body>
+</html>

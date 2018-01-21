@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebAssembly GPGPU</title>
+    <script src="webassembly/webassemblyDemo.js"></script>
+    <script>
+    "use strict"
+    window.addEventListener("wasmLoaded", () => {
+        console.log("\n\nExample 1 - Identity function (x=x)")
+        Module.ccall("Example1", null, null, null)
+        console.log("\n\nExample 2 - Quadratic function (x=x*x)")
+        Module.ccall("Example2", null, null, null)
+        console.log("\n\nExample 3 - Element-wise addition across 3 textures, + a variable (5)")
+        Module.ccall("Example3", null, null, null)
+    })
+    </script>
+    <canvas id="theCanvas" height="128px" width="128px"></canvas>
+    Open console to see output
+</head>
+<body>
+</body>
+</html>
