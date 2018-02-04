@@ -5,8 +5,136 @@
     <!-- // <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/1.0.2/Chart.min.js"></script> -->
     <script src="./example/Chart.min.js"></script>
     <script src="./GPGPU.js"></script>
-    <script src="./example/wasm-arrays.min.js"></script>
     <script src="./webassembly/webassemblyDemo.js"></script>
+    <script>
+    // Get the latest version of my library
+    fetch("https://raw.githubusercontent.com/DanRuta/wasm-arrays/master/dist/wasm-arrays.min.js")
+    .then(r => r.text())
+    .then(s => {
+        const script = document.createElement("script")
+        script.innerHTML = s
+        document.head.appendChild(script)
+    })
+
+    /* SHADERS START*/
+    window.example1Fragment = `
+        #ifdef GL_FRAGMENT_PRECISION_HIGH
+            precision highp float;
+        #else
+            precision mediump float;
+        #endif
+
+        uniform sampler2D texture;
+        varying vec2 vTextureCoord;
+
+
+        void main() {
+            gl_FragColor = texture2D(texture, vTextureCoord);
+        }
+    `
+
+    window.example2Fragment = `
+        #ifdef GL_FRAGMENT_PRECISION_HIGH
+            precision highp float;
+        #else
+            precision mediump float;
+        #endif
+
+        uniform sampler2D texture;
+        varying vec2 vTextureCoord;
+
+        void main() {
+            gl_FragColor = texture2D(texture, vTextureCoord) * texture2D(texture, vTextureCoord);
+        }
+    `
+
+    window.example3Fragment = `
+        #ifdef GL_FRAGMENT_PRECISION_HIGH
+            precision highp float;
+            uniform highp sampler2D texture0;
+            uniform highp sampler2D texture1;
+            uniform highp sampler2D texture2;
+        #else
+            precision mediump float;
+            uniform mediump sampler2D texture0;
+            uniform mediump sampler2D texture1;
+            uniform mediump sampler2D texture2;
+        #endif
+
+        varying vec2 vTextureCoord;
+        uniform float variable;
+
+        void main() {
+
+            vec4 pixel1 = texture2D(texture0, vTextureCoord);
+            vec4 pixel2 = texture2D(texture1, vTextureCoord);
+            vec4 pixel3 = texture2D(texture2, vTextureCoord);
+
+            // pixel3.r = 1.0;
+
+            gl_FragColor.r = pixel1.r + pixel2.r + pixel3.r + variable;
+            gl_FragColor.g = pixel1.g + pixel2.g + pixel3.g + variable;
+            gl_FragColor.b = pixel1.b + pixel2.b + pixel3.b + variable;
+            gl_FragColor.a = pixel1.a + pixel2.a + pixel3.a + variable;
+
+        }
+    `
+    window.example4Fragment = `
+        #ifdef GL_FRAGMENT_PRECISION_HIGH
+            precision highp float;
+            uniform highp sampler2D texture1;
+            uniform highp sampler2D texture2; // kernel
+        #else
+            precision mediump float;
+            uniform mediump sampler2D texture1;
+            uniform mediump sampler2D texture2; // kernel
+        #endif
+
+        varying vec2 vTextureCoord;
+        uniform float w;
+
+        void main() {
+
+            const int kSpan = 3;
+            const int spread = kSpan/2;
+
+            // Gather the input values into a map
+            vec4 n[kSpan*kSpan];
+
+            for (int i=-spread; i<=spread; i++) {
+                for (int j=-spread; j<=spread; j++) {
+
+                    vec4 value;
+
+                    // Zero out values out of bounds
+                    if ( (vTextureCoord.x + float(j)*w) > 1.0 ||
+                         (vTextureCoord.x + float(j)*w) < 0.0 ||
+                         (vTextureCoord.y + float(i)*w) > 1.0 ||
+                         (vTextureCoord.y + float(i)*w) < 0.0 ) {
+                        value.r = 0.0;
+                    } else {
+                        value = texture2D( texture1, vTextureCoord + vec2(float(j)*w, float(i)*w) );
+                    }
+
+                    n[(j+spread)+(i+spread)*kSpan] = value;
+                }
+            }
+
+
+            gl_FragColor.r = 0.0;
+
+            float step = 1.0 / float(1 + kSpan);
+
+            // Dot product against the kernel
+            for (int i=0; i<kSpan; i++) {
+                for (int j=0; j<kSpan; j++) {
+                    gl_FragColor.r += n[i*kSpan + j].r * texture2D( texture2, vec2(step * float(j+1), step * float(i+1) ) ).r;
+                }
+            }
+        }
+    `
+    /* SHADERS END*/
+    </script>
     <script src="./example/script.js"></script>
 </head>
 <body>
@@ -21,6 +149,7 @@
     <button id="example1GPU">Example 1 (GPU)</button>
     <button id="example1JS">Example 1 (JS)</button>
     <button id="example1WAGPU">Example 1 (WebAssembly GPU)</button>
+    <button id="example1WA">Example 1 (WebAssembly)</button>
     <div>
         <div id="identityChartIterations"></div>
         <div id="identityChartSize"></div>
@@ -31,6 +160,7 @@
     <button id="example2GPU">Example 2 (GPU)</button>
     <button id="example2JS">Example 2 (JS)</button>
     <button id="example2WAGPU">Example 2 (WebAssembly GPU)</button>
+    <button id="example2WA">Example 2 (WebAssembly)</button>
     <div>
         <div id="quadraticChartIterations"></div>
         <div id="quadraticChartSize"></div>
@@ -41,6 +171,7 @@
     <button id="example3GPU">Example 3 (GPU)</button>
     <button id="example3JS">Example 3 (JS)</button>
     <button id="example3WAGPU">Example 3 (WebAssembly GPU)</button>
+    <button id="example3WA">Example 3 (WebAssembly)</button>
     <div>
         <div id="ewAdd3p1ChartIterations"></div>
         <div id="ewAdd3p1ChartSize"></div>
@@ -56,6 +187,7 @@
     <button id="example4GPU">Example 4 (GPU)</button>
     <button id="example4JS">Example 4 (JS)</button>
     <button id="example4WAGPU">Example 4 (WebAssembly GPU)</button>
+    <button id="example4WA">Example 4 (WebAssembly)</button>
     <div>
         <div id="conv3x3_5x5ChartIterations"></div>
         <div id="conv3x3_5x5ChartSize"></div>

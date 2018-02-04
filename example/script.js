@@ -1,122 +1,5 @@
 "use strict"
 
-const example1Fragment = `
-    #ifdef GL_FRAGMENT_PRECISION_HIGH
-        precision highp float;
-    #else
-        precision mediump float;
-    #endif
-
-    uniform sampler2D texture;
-    varying vec2 vTextureCoord;
-
-
-    void main() {
-        gl_FragColor = texture2D(texture, vTextureCoord);
-    }
-`
-
-const example2Fragment = `
-    #ifdef GL_FRAGMENT_PRECISION_HIGH
-        precision highp float;
-    #else
-        precision mediump float;
-    #endif
-
-    uniform sampler2D texture;
-    varying vec2 vTextureCoord;
-
-    void main() {
-        gl_FragColor = texture2D(texture, vTextureCoord) * texture2D(texture, vTextureCoord);
-    }
-`
-
-const example3Fragment = `
-    #ifdef GL_FRAGMENT_PRECISION_HIGH
-        precision highp float;
-        uniform highp sampler2D texture0;
-        uniform highp sampler2D texture1;
-        uniform highp sampler2D texture2;
-    #else
-        precision mediump float;
-        uniform mediump sampler2D texture0;
-        uniform mediump sampler2D texture1;
-        uniform mediump sampler2D texture2;
-    #endif
-
-    varying vec2 vTextureCoord;
-    uniform float variable;
-
-    void main() {
-
-        vec4 pixel1 = texture2D(texture0, vTextureCoord);
-        vec4 pixel2 = texture2D(texture1, vTextureCoord);
-        vec4 pixel3 = texture2D(texture2, vTextureCoord);
-
-        // pixel3.r = 1.0;
-
-        gl_FragColor.r = pixel1.r + pixel2.r + pixel3.r + variable;
-        gl_FragColor.g = pixel1.g + pixel2.g + pixel3.g + variable;
-        gl_FragColor.b = pixel1.b + pixel2.b + pixel3.b + variable;
-        gl_FragColor.a = pixel1.a + pixel2.a + pixel3.a + variable;
-
-    }
-`
-const example4Fragment = `
-    #ifdef GL_FRAGMENT_PRECISION_HIGH
-        precision highp float;
-        uniform highp sampler2D texture1;
-        uniform highp sampler2D texture2; // kernel
-    #else
-        precision mediump float;
-        uniform mediump sampler2D texture1;
-        uniform mediump sampler2D texture2; // kernel
-    #endif
-
-    varying vec2 vTextureCoord;
-    uniform float w;
-
-    void main() {
-
-        const int kSpan = 3;
-        const int spread = kSpan/2;
-
-        // Gather the input values into a map
-        vec4 n[kSpan*kSpan];
-
-        for (int i=-spread; i<=spread; i++) {
-            for (int j=-spread; j<=spread; j++) {
-
-                vec4 value;
-
-                // Zero out values out of bounds
-                if ( (vTextureCoord.x + float(j)*w) > 1.0 ||
-                     (vTextureCoord.x + float(j)*w) < 0.0 ||
-                     (vTextureCoord.y + float(i)*w) > 1.0 ||
-                     (vTextureCoord.y + float(i)*w) < 0.0 ) {
-                    value.r = 0.0;
-                } else {
-                    value = texture2D( texture1, vTextureCoord + vec2(float(j)*w, float(i)*w) );
-                }
-
-                n[(j+spread)+(i+spread)*kSpan] = value;
-            }
-        }
-
-
-        gl_FragColor.r = 0.0;
-
-        float step = 1.0 / float(1 + kSpan);
-
-        // Dot product against the kernel
-        for (int i=0; i<kSpan; i++) {
-            for (int j=0; j<kSpan; j++) {
-                gl_FragColor.r += n[i*kSpan + j].r * texture2D( texture2, vec2(step * float(j+1), step * float(i+1) ) ).r;
-            }
-        }
-    }
-`
-
 let setupTimer
 let timer
 
@@ -128,11 +11,63 @@ window.addEventListener("load", () => {
     let log = true
     let times = parseInt(counterInput.value)
     let charts = []
-    const kernel = new Float32Array(25*4)
+    // const kernel = new Float32Array(25*4)
 
-    for (let k=0; k<25; k++) {
-        kernel[k*4] = k
+    const vals = [0,0,2,2,2,
+                  1,1,0,2,0,
+                  1,2,1,1,2,
+                  0,1,2,2,1,
+                  1,2,0,0,1]
+
+    const kernelVals = [-1, 0,-1,
+                         1, 0, 1,
+                         1,-1, 0]
+
+    const eg4Data = new Float32Array(vals.length * 4)
+    const kernel = new Float32Array(kernelVals.length * 4)
+
+    for (let i=0; i<vals.length; i++) {
+        eg4Data[i*4] = vals[i]
     }
+
+    for (let i=0; i<kernelVals.length; i++) {
+        kernel[i*4] = kernelVals[i]
+    }
+
+    // for (let k=0; k<25; k++) {
+    //     kernel[k*4] = k
+    // }
+
+
+
+
+    // const vals = [0,0,2,2,2,
+    //               1,1,0,2,0,
+    //               1,2,1,1,2,
+    //               0,1,2,2,1,
+    //               1,2,0,0,1]
+
+
+    // const kernelVals = [-1, 0,-1,
+    //                      1, 0, 1,
+    //                      1,-1, 0]
+
+    // const inputData = new Float32Array(vals.length * 4)
+    // const kernel = new Float32Array(kernelVals.length * 4)
+
+    // for (let i=0; i<vals.length; i++) {
+    //     inputData[i*4] = vals[i]
+    // }
+
+    // for (let i=0; i<kernelVals.length; i++) {
+    //     kernel[i*4] = kernelVals[i]
+    // }
+
+
+
+
+
+
 
     const generateData = () => {
 
@@ -165,9 +100,7 @@ window.addEventListener("load", () => {
         const end = Date.now()
 
         if (log) {
-            console.log(`Example 1 (GPU - ${times} times): `, gpu.getPixels())
-            console.log(`Elapsed set-up: ${timer-setupTimer}`)
-            console.log(`Elapsed run: ${end-timer}`)
+            console.log(`Example 1 (GPU - ${times} times): `, gpu.getPixels(), `\nElapsed set-up: ${timer-setupTimer}\nElapsed run: ${end-timer}`)
         }
 
         gpu.delete()
@@ -186,8 +119,7 @@ window.addEventListener("load", () => {
         }
 
         if (log) {
-            console.log("Example 1 (GPU) data:", data)
-            console.log(`Elapsed (${times} times): ${Date.now()-timer}`)
+            console.log("Example 1 (GPU) data:", data, `\nElapsed (${times} times): ${Date.now()-timer}`)
         }
         return [Date.now()-timer]
     }
@@ -195,25 +127,25 @@ window.addEventListener("load", () => {
     window.runExample1WAGPU = () => {
         setupTimer = Date.now()
 
-        window.waTimer = undefined
-
-        const data = new Float32Array(mapSize*4)
-
-        for (let i=0; i<mapSize*4; i++) {
-            data[i] = testData[i]
-        }
-
-        const result = ccallArrays("runExample1WAGPU", "array", ["array", "number"], [data, times], {heapIn: "HEAPF32", heapOut: "HEAPF32", returnArraySize: mapSize*4})
-
+        const result = ccallArrays("runExample1WAGPU", "array", ["array", "number"], [testData, times], {heapIn: "HEAPF32", heapOut: "HEAPF32", returnArraySize: mapSize*4})
         const setUpTime = Date.now() - setupTimer - waRunTime
 
-
         if (log) {
-            console.log(`Example 1 (WA - ${times} times): `, result)
-            console.log(`Elapsed set-up: ${setUpTime}`)
-            console.log(`Elapsed run: ${waRunTime}`)
+            console.log(`Example 1 (WA GPU - ${times} times): `, result, `\nElapsed set-up: ${setUpTime}\nElapsed run: ${waRunTime}`)
         }
 
+        return [setUpTime, waRunTime]
+    }
+
+    window.runExample1WA = () => {
+        setupTimer = Date.now()
+
+        const result = ccallArrays("runExample1WA", "array", ["array", "number"], [testData, times], {heapIn: "HEAPF32", heapOut: "HEAPF32", returnArraySize: mapSize*4})
+        const setUpTime = Date.now() - setupTimer - waRunTime
+
+        if (log) {
+            console.log(`Example 1 (WA - ${times} times): `, result, `\nElapsed set-up: ${setUpTime}\nElapsed run: ${waRunTime}`)
+        }
         return [setUpTime, waRunTime]
     }
 
@@ -237,9 +169,7 @@ window.addEventListener("load", () => {
         const end = Date.now()
 
         if (log) {
-            console.log(`Example 2 (GPU - ${times} times): `, gpu.getPixels())
-            console.log(`Elapsed set-up: ${timer-setupTimer}`)
-            console.log(`Elapsed run: ${end-timer}`)
+            console.log(`Example 2 (GPU - ${times} times): `, gpu.getPixels(), `\nElapsed set-up: ${timer-setupTimer}\nElapsed run: ${end-timer}`)
         }
 
         gpu.delete()
@@ -258,8 +188,7 @@ window.addEventListener("load", () => {
         }
 
         if (log) {
-            console.log("Example 2 (JS) data:", data)
-            console.log(`Elapsed (${times} times): ${Date.now()-timer}`)
+            console.log("Example 2 (JS) data:", data, `\nElapsed (${times} times): ${Date.now()-timer}`)
         }
         return [Date.now()-timer]
     }
@@ -267,23 +196,24 @@ window.addEventListener("load", () => {
     window.runExample2WAGPU = () => {
         setupTimer = Date.now()
 
-        window.waTimer = undefined
-
-        const data = new Float32Array(mapSize*4)
-
-        for (let i=0; i<mapSize*4; i++) {
-            data[i] = testData[i]
-        }
-
-        const result = ccallArrays("runExample2WAGPU", "array", ["array", "number"], [data, times], {heapIn: "HEAPF32", heapOut: "HEAPF32", returnArraySize: mapSize*4})
-
+        const result = ccallArrays("runExample2WAGPU", "array", ["array", "number"], [testData, times], {heapIn: "HEAPF32", heapOut: "HEAPF32", returnArraySize: mapSize*4})
         const setUpTime = Date.now() - setupTimer - waRunTime
 
+        if (log) {
+            console.log(`Example 2 (WA GPU - ${times} times): `, result, `\nElapsed set-up: ${setUpTime}\nElapsed run: ${waRunTime}`)
+        }
+
+        return [setUpTime, waRunTime]
+    }
+
+    window.runExample2WA = () => {
+        setupTimer = Date.now()
+
+        const result = ccallArrays("runExample2WA", "array", ["array", "number"], [testData, times], {heapIn: "HEAPF32", heapOut: "HEAPF32", returnArraySize: mapSize*4})
+        const setUpTime = Date.now() - setupTimer - waRunTime
 
         if (log) {
-            console.log(`Example 2 (WA - ${times} times): `, result)
-            console.log(`Elapsed set-up: ${setUpTime}`)
-            console.log(`Elapsed run: ${waRunTime}`)
+            console.log(`Example 2 (WA - ${times} times): `, result, `\nElapsed set-up: ${setUpTime}\nElapsed run: ${waRunTime}`)
         }
 
         return [setUpTime, waRunTime]
@@ -314,9 +244,7 @@ window.addEventListener("load", () => {
         const end = Date.now()
 
         if (log) {
-            console.log(`Example 3 (GPU - ${times} times): `, gpu.getPixels())
-            console.log(`Elapsed set-up: ${timer-setupTimer}`)
-            console.log(`Elapsed run: ${end-timer}`)
+            console.log(`Example 3 (GPU - ${times} times): `, gpu.getPixels(), `\nElapsed set-up: ${timer-setupTimer}\nElapsed run: ${end-timer}`)
         }
 
         gpu.delete()
@@ -336,8 +264,7 @@ window.addEventListener("load", () => {
         }
 
         if (log) {
-            console.log("Example 3 (JS) data:", data)
-            console.log(`Elapsed (${times} times): ${Date.now()-timer}`)
+            console.log("Example 3 (JS) data:", data, `\nElapsed (${times} times): ${Date.now()-timer}`)
         }
         return [Date.now()-timer]
     }
@@ -345,24 +272,26 @@ window.addEventListener("load", () => {
     window.runExample3WAGPU = () => {
         setupTimer = Date.now()
 
-        window.waTimer = undefined
-
-        const data = new Float32Array(mapSize*4)
         let variable = parseFloat(varInput.value)
-
-        for (let i=0; i<mapSize*4; i++) {
-            data[i] = testData[i]
-        }
-
-        const result = ccallArrays("runExample3WAGPU", "array", ["array", "number", "number"], [data, variable, times], {heapIn: "HEAPF32", heapOut: "HEAPF32", returnArraySize: mapSize*4})
-
+        const result = ccallArrays("runExample3WAGPU", "array", ["array", "number", "number"], [testData, variable, times], {heapIn: "HEAPF32", heapOut: "HEAPF32", returnArraySize: mapSize*4})
         const setUpTime = Date.now() - setupTimer - waRunTime
 
+        if (log) {
+            console.log(`Example 3 (WA GPU- ${times} times): `, result, `\nElapsed set-up: ${setUpTime}\nElapsed run: ${waRunTime}`)
+        }
+
+        return [setUpTime, waRunTime]
+    }
+
+    window.runExample3WA = () => {
+        setupTimer = Date.now()
+
+        let variable = parseFloat(varInput.value)
+        const result = ccallArrays("runExample3WA", "array", ["array", "number", "number"], [testData, variable, times], {heapIn: "HEAPF32", heapOut: "HEAPF32", returnArraySize: mapSize*4})
+        const setUpTime = Date.now() - setupTimer - waRunTime
 
         if (log) {
-            console.log(`Example 2 (WA - ${times} times): `, result)
-            console.log(`Elapsed set-up: ${setUpTime}`)
-            console.log(`Elapsed run: ${waRunTime}`)
+            console.log(`Example 3 (WA - ${times} times): `, result, `\nElapsed set-up: ${setUpTime}\nElapsed run: ${waRunTime}`)
         }
 
         return [setUpTime, waRunTime]
@@ -372,35 +301,9 @@ window.addEventListener("load", () => {
     window.runExample4GPU = () => {
         setupTimer = Date.now()
 
-        // Input
-        const vals = [0,0,2,2,2,
-                      1,1,0,2,0,
-                      1,2,1,1,2,
-                      0,1,2,2,1,
-                      1,2,0,0,1]
-
-
-        const kernelVals = [-1, 0,-1,
-                             1, 0, 1,
-                             1,-1, 0]
-
-        const inputData = new Float32Array(vals.length * 4)
-        const kernel = new Float32Array(kernelVals.length * 4)
-
-        for (let i=0; i<vals.length; i++) {
-            inputData[i*4] = vals[i]
-        }
-
-        for (let i=0; i<kernelVals.length; i++) {
-            kernel[i*4] = kernelVals[i]
-        }
-
-        // console.log("inputData", inputData)
-        // console.log("kernel", kernel)
-
         const gpu = new GPGPU({height: 5, width: 5})
         gpu.makeFrameBuffer()
-        gpu.makeTexture(inputData)
+        gpu.makeTexture(eg4Data)
         gpu.makeTexture(kernel, 3, 3)
         gpu.buildProgram(example4Fragment)
 
@@ -418,9 +321,7 @@ window.addEventListener("load", () => {
         const expected = [[-1,2,3,2,4], [0,-2,2,-4,-1], [1,0,-1,3,0], [-2,-1,2,0,0], [1,-1,-1,-2,-2]]
 
         if (log) {
-            console.log(`Example 4 (GPU - ${times} times): `, gpu.getPixels())
-            console.log(`Elapsed set-up: ${timer-setupTimer}`)
-            console.log(`Elapsed run: ${end-timer}`)
+            console.log(`Example 4 (GPU - ${times} times): `, gpu.getPixels(), `\nElapsed set-up: ${timer-setupTimer}\nElapsed run: ${end-timer}`)
         }
 
         gpu.delete()
@@ -434,26 +335,6 @@ window.addEventListener("load", () => {
         const inputSpan = 5
         const kSpan = 3
         const spread = 1
-        const vals = [0,0,2,2,2,
-                      1,1,0,2,0,
-                      1,2,1,1,2,
-                      0,1,2,2,1,
-                      1,2,0,0,1]
-
-        const kernelVals = [-1, 0,-1,
-                             1, 0, 1,
-                             1,-1, 0]
-
-        const inputData = new Float32Array(vals.length * 4)
-        const kernel = new Float32Array(kernelVals.length * 4)
-
-        for (let i=0; i<vals.length; i++) {
-            inputData[i*4] = vals[i]
-        }
-
-        for (let i=0; i<kernelVals.length; i++) {
-            kernel[i*4] = kernelVals[i]
-        }
 
         for (let t=0; t<times; t++) {
             // For every pixel
@@ -472,7 +353,7 @@ window.addEventListener("load", () => {
 
                             if (yCoord >= 0 && yCoord < inputSpan &&
                                 xCoord >= 0 && xCoord < inputSpan) {
-                                n[(j+spread)*kSpan+(k+spread)] = inputData[(yCoord*inputSpan + xCoord) * 4]
+                                n[(j+spread)*kSpan+(k+spread)] = eg4Data[(yCoord*inputSpan + xCoord) * 4]
                             } else {
                                 n[(j+spread)*kSpan+(k+spread)] = 0
                             }
@@ -491,8 +372,7 @@ window.addEventListener("load", () => {
         }
 
         if (log) {
-            console.log("Example 4 (JS) data:", data)
-            console.log(`Elapsed (${times} times): ${Date.now()-timer}`)
+            console.log("Example 4 (JS) data:", data, `\nElapsed (${times} times): ${Date.now()-timer}`)
         }
 
         return [Date.now()-timer]
@@ -501,40 +381,24 @@ window.addEventListener("load", () => {
     window.runExample4WAGPU = () => {
         setupTimer = Date.now()
 
-        window.waTimer = undefined
-
-        // Input
-        const vals = [0,0,2,2,2,
-                      1,1,0,2,0,
-                      1,2,1,1,2,
-                      0,1,2,2,1,
-                      1,2,0,0,1]
-
-
-        const kernelVals = [-1, 0,-1,
-                             1, 0, 1,
-                             1,-1, 0]
-
-        const inputData = new Float32Array(vals.length * 4)
-        const kernel = new Float32Array(kernelVals.length * 4)
-
-        for (let i=0; i<vals.length; i++) {
-            inputData[i*4] = vals[i]
-        }
-
-        for (let i=0; i<kernelVals.length; i++) {
-            kernel[i*4] = kernelVals[i]
-        }
-
-        const result = ccallArrays("runExample4WAGPU", "array", ["array", "array", "number"], [inputData, kernel, times], {heapIn: "HEAPF32", heapOut: "HEAPF32", returnArraySize: 100})
-
+        const result = ccallArrays("runExample4WAGPU", "array", ["array", "array", "number"], [eg4Data, kernel, times], {heapIn: "HEAPF32", heapOut: "HEAPF32", returnArraySize: 100})
         const setUpTime = Date.now() - setupTimer - waRunTime
 
+        if (log) {
+            console.log(`Example 4 (WA GPU - ${times} times): `, result, `\nElapsed set-up: ${setUpTime}\nElapsed run: ${waRunTime}`)
+        }
+
+        return [setUpTime, waRunTime]
+    }
+
+    window.runExample4WA = () => {
+        setupTimer = Date.now()
+
+        const result = ccallArrays("runExample4WA", "array", ["array", "array", "number"], [eg4Data, kernel, times], {heapIn: "HEAPF32", heapOut: "HEAPF32", returnArraySize: 100})
+        const setUpTime = Date.now() - setupTimer - waRunTime
 
         if (log) {
-            console.log(`Example 4 (WA - ${times} times): `, result)
-            console.log(`Elapsed set-up: ${setUpTime}`)
-            console.log(`Elapsed run: ${waRunTime}`)
+            console.log(`Example 4 (WA - ${times} times): `, result, `\nElapsed set-up: ${setUpTime}\nElapsed run: ${waRunTime}`)
         }
 
         return [setUpTime, waRunTime]
@@ -545,18 +409,22 @@ window.addEventListener("load", () => {
     example1GPU.addEventListener("click", runExample1GPU)
     example1JS.addEventListener("click", runExample1JS)
     example1WAGPU.addEventListener("click", runExample1WAGPU)
+    example1WA.addEventListener("click", runExample1WA)
 
     example2GPU.addEventListener("click", runExample2GPU)
     example2JS.addEventListener("click", runExample2JS)
     example2WAGPU.addEventListener("click", runExample2WAGPU)
+    example2WA.addEventListener("click", runExample2WA)
 
     example3GPU.addEventListener("click", runExample3GPU)
     example3JS.addEventListener("click", runExample3JS)
     example3WAGPU.addEventListener("click", runExample3WAGPU)
+    example3WA.addEventListener("click", runExample3WA)
 
     example4GPU.addEventListener("click", runExample4GPU)
     example4JS.addEventListener("click", runExample4JS)
     example4WAGPU.addEventListener("click", runExample4WAGPU)
+    example4WA.addEventListener("click", runExample4WA)
 
 
     mapSizeInput.addEventListener("change", () => {
@@ -599,6 +467,7 @@ window.addEventListener("load", () => {
                     borderDash: [5, 5],
                     borderColor: "rgba(150, 26, 31, 0.5)",
                     backgroundColor: "rgba(150, 26, 31, 0.5)",
+                    fill: false,
                     data: [],
                     pointRadius: 0
                 },{
@@ -612,6 +481,7 @@ window.addEventListener("load", () => {
                     borderDash: [5, 5],
                     borderColor: "rgba(126, 53, 136, 0.5)",
                     backgroundColor: "rgba(126, 53, 136, 0.5)",
+                    fill: false,
                     data: [],
                     pointRadius: 0
                 },{
@@ -620,8 +490,21 @@ window.addEventListener("load", () => {
                     backgroundColor: "rgba(126, 53, 136, 0.5)",
                     data: [],
                     pointRadius: 0
+                },{
+                    label: "WebAssembly",
+                    borderColor: "rgba(101, 79, 240, 0.5)",
+                    backgroundColor: "rgba(101, 79, 240, 0.5)",
+                    data: [],
+                    pointRadius: 0
+                },{
+                    label: "WebAssembly (set-up time)",
+                    borderDash: [5, 5],
+                    borderColor: "rgba(101, 79, 240, 0.5)",
+                    backgroundColor: "rgba(101, 79, 240, 0.5)",
+                    fill: false,
+                    data: [],
+                    pointRadius: 0
                 }]
-                    // backgroundColor: "rgba(101, 79, 240, 0.5)",
             },
             options: {
                 scales: {
@@ -644,7 +527,7 @@ window.addEventListener("load", () => {
     }
 
     const plot = (i, chartI, egI) => {
-
+        log = false
         times = Math.floor(Math.pow(2, i/6)) // or 4
         const [setUp, elapsed] = window[`runExample${egI+1}GPU`]()
         const [jsElapsed] = window[`runExample${egI+1}JS`]()
@@ -655,6 +538,12 @@ window.addEventListener("load", () => {
         charts[chartI].data.datasets[2].data.push({x: times, y: jsElapsed})
         charts[chartI].data.datasets[3].data.push({x: times, y: waSetUp})
         charts[chartI].data.datasets[4].data.push({x: times, y: waElapsed})
+
+        if (window[`runExample${egI+1}WA`]) {
+            const [waSetUp, waElapsed] = window[`runExample${egI+1}WA`]()
+            charts[chartI].data.datasets[5].data.push({x: times, y: waSetUp})
+            charts[chartI].data.datasets[6].data.push({x: times, y: waElapsed})
+        }
 
         charts[chartI].update()
 
@@ -671,60 +560,39 @@ window.addEventListener("load", () => {
     }
 
     benchmarkExample1Button.addEventListener("click", () => {
-        log = false
-        charts = []
-
         const [iterationsCanvas, identityChart] = makeChart()
         identityChartIterations.innerHTML = ""
         identityChartIterations.appendChild(iterationsCanvas)
-
-        charts.push(identityChart)
-
+        charts = [identityChart]
         plot(25, 0, 0)
     })
 
     benchmarkExample2Button.addEventListener("click", () => {
-        log = false
-        charts = []
-
         const [quadraticCanvas, quadraticChart] = makeChart()
         quadraticChartIterations.innerHTML = ""
         quadraticChartIterations.appendChild(quadraticCanvas)
-
-        charts.push(quadraticChart)
-
+        charts = [quadraticChart]
         plot(25, 0, 1)
     })
 
 
     benchmarkExample3Button.addEventListener("click", () => {
-        log = false
-        charts = []
-
         const [ewAdd3p1Canvas, ewAdd3p1Chart] = makeChart()
         ewAdd3p1ChartIterations.innerHTML = ""
         ewAdd3p1ChartIterations.appendChild(ewAdd3p1Canvas)
-
-        charts.push(ewAdd3p1Chart)
-
+        charts = [ewAdd3p1Chart]
         plot(25, 0, 2)
     })
 
     benchmarkExample4Button.addEventListener("click", () => {
-        log = false
-        charts = []
-
         const [conv3x3_5x5Canvas, conv3x3_5x5Chart] = makeChart()
         conv3x3_5x5ChartIterations.innerHTML = ""
         conv3x3_5x5ChartIterations.appendChild(conv3x3_5x5Canvas)
-
-        charts.push(conv3x3_5x5Chart)
-
+        charts = [conv3x3_5x5Chart]
         plot(25, 0, 3)
     })
 
     plotBenchmarkButton.addEventListener("click", () => {
-        // log = false
         charts = []
 
         const [iterationsCanvas, identityChart] = makeChart()
@@ -742,7 +610,6 @@ window.addEventListener("load", () => {
         const [conv3x3_5x5Canvas, conv3x3_5x5Chart] = makeChart()
         conv3x3_5x5ChartIterations.innerHTML = ""
         conv3x3_5x5ChartIterations.appendChild(conv3x3_5x5Canvas)
-
 
         charts.push(identityChart)
         charts.push(quadraticChart)

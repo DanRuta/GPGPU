@@ -257,6 +257,124 @@ extern "C" {
 
 
     EMSCRIPTEN_KEEPALIVE
+    float* runExample1WA (float *buf, int bufSize, int times) {
+
+        EM_ASM(window.waRunTime = Date.now());
+
+        float data[16384*4];
+
+        for (int t=0; t<times; t++) {
+            for (int d=0; d<16384*4; d++) {
+                data[d] = buf[d];
+            }
+        }
+
+        EM_ASM(window.waRunTime = Date.now() - window.waRunTime);
+
+        auto arrayPtr = &data[0];
+        return arrayPtr;
+    }
+
+    EMSCRIPTEN_KEEPALIVE
+    float* runExample2WA (float *buf, int bufSize, int times) {
+
+        EM_ASM(window.waRunTime = Date.now());
+
+        float data[16384*4];
+
+        for (int t=0; t<times; t++) {
+            for (int d=0; d<16384*4; d++) {
+                data[d] = buf[d] * buf[d];
+            }
+        }
+
+        EM_ASM(window.waRunTime = Date.now() - window.waRunTime);
+
+        auto arrayPtr = &data[0];
+        return arrayPtr;
+    }
+
+    EMSCRIPTEN_KEEPALIVE
+    float* runExample3WA (float *buf, int bufSize, float variable, int times) {
+
+        EM_ASM(window.waRunTime = Date.now());
+
+        float data[16384*4];
+
+        for (int t=0; t<times; t++) {
+            for (int d=0; d<16384*4; d++) {
+                data[d] = buf[d] + buf[d] + buf[d] + variable;
+            }
+        }
+
+        EM_ASM(window.waRunTime = Date.now() - window.waRunTime);
+
+        auto arrayPtr = &data[0];
+        return arrayPtr;
+    }
+
+    EMSCRIPTEN_KEEPALIVE
+    float* runExample4WA (float *inputData, int inputDataSize, float *kernel, int kernelSize, int times) {
+
+        EM_ASM(window.waRunTime = Date.now());
+
+        int inputSpan = 5;
+        int kSpan = 3;
+        int spread = 1;
+        float data[5*5*4];
+
+        for (int i=0; i<5*5*4; i++) {
+            data[i] = 0;
+        }
+
+        for (int t=0; t<times; t++) {
+            // For every pixel
+            for (int y=0; y<inputSpan; y++) {
+                for (int x=0; x<inputSpan; x++) {
+
+                    float sum = 0;
+                    float n[9];
+
+                    // Gather input data
+                    for (int j=-spread; j<=spread; j++) {
+                        for (int k=-spread; k<=spread; k++) {
+
+                            int yCoord = y + j;
+                            int xCoord = x + k;
+
+                            if (yCoord >= 0 && yCoord < inputSpan &&
+                                xCoord >= 0 && xCoord < inputSpan) {
+                                n[(j+spread)*kSpan+(k+spread)] = inputData[(yCoord*inputSpan + xCoord) * 4];
+                            } else {
+                                n[(j+spread)*kSpan+(k+spread)] = 0;
+                            }
+                        }
+                    }
+
+                    for (int j=0; j<kSpan; j++) {
+                        for (int k=0; k<kSpan; k++) {
+                            sum += kernel[(j*kSpan+k) * 4] * n[j*kSpan+k];
+                        }
+                    }
+
+                    data[(y*inputSpan+x)*4] = sum;
+                }
+            }
+        }
+
+        EM_ASM(window.waRunTime = Date.now() - window.waRunTime);
+
+        auto arrayPtr = &data[0];
+        return arrayPtr;
+    }
+
+
+
+    /*
+        Below examples are for C++ use, without WebAssembly
+    */
+
+    EMSCRIPTEN_KEEPALIVE
     void Example1 (void) {
 
         float data[16384*4];
