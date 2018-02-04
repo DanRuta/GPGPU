@@ -102,6 +102,7 @@ class GPGPU {
 
         this.gl.linkProgram(this.program)
         this.gl.deleteShader(fragment)
+        this.gl.deleteShader(vertex)
 
         this.gl.useProgram(this.program)
 
@@ -145,9 +146,9 @@ class GPGPU {
         this.gl.bindTexture(this.gl.TEXTURE_2D, texture)
 
         if (!this.ready) {
-            this.ready = true
 
-            this.addUniform("texture1", 0, "uniform1i")
+            this.ready = true
+            this.addUniform("texture0", 0, "uniform1i")
 
             const texToAdd = texture==this.textures[this.textures.length-1] ? this.textures.length-1 : this.textures.length
 

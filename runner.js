@@ -29,7 +29,7 @@ const compile = () => {
 
         tasks.push(new Promise((resolve, reject) => {
 
-            const command = `C:/emsdk/emsdk_env.bat & echo Building... & emcc -o ./webassembly/webassemblyDemo.js ./webassembly/webassemblyDemo.cpp -O3 -s DISABLE_EXCEPTION_CATCHING=2 -s WASM=1 -s NO_EXIT_RUNTIME=1 -std=c++14`
+            const command = `C:/emsdk/emsdk_env.bat & echo Building... & emcc -o ./webassembly/webassemblyDemo.js ./webassembly/webassemblyDemo.cpp -O3 -s DISABLE_EXCEPTION_CATCHING=2 -s ALLOW_MEMORY_GROWTH=1 -s WASM=1 -s NO_EXIT_RUNTIME=1 -std=c++14`
             console.log(`[${file}] Running...  `, `\x1b[4m${command}\x1b[0m`)
 
             exec(command, (error, stdout, stderr) => {

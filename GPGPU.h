@@ -83,9 +83,8 @@ public:
         attrs.majorVersion = 2; // not 3?
         attrs.minorVersion = 0;
 
-        // gl = emscripten_webgl_create_context(0, &attrs); // id, attrs
         char id[10] = "theCanvas";
-        gl = emscripten_webgl_create_context(id, &attrs); // id, attrs
+        gl = emscripten_webgl_create_context(id, &attrs);
         emscripten_webgl_make_context_current(gl);
 
 
@@ -101,8 +100,11 @@ public:
     void makeTexture (void) {
         makeTexture({});
     }
-
     void makeTexture (float* buffer) {
+        makeTexture(buffer, width, height);
+    }
+
+    void makeTexture (float* buffer, int w, int h) {
 
         GLuint texId;
         glGenTextures(1, &texId);
@@ -113,19 +115,20 @@ public:
         glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-        glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, buffer);
+        glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA32F, w, h, 0, GL_RGBA, GL_FLOAT, buffer);
         textures.push_back(texId);
     }
 
-    void makeFrameBuffer (int w=-1, int h=-1) {
+    void makeFrameBuffer (void) {
+        makeFrameBuffer(width, height);
+    }
 
-        if (w==-1) w = width;
-        if (h==-1) w = height;
+    void makeFrameBuffer (int w, int h) {
 
         GLuint texId;
         glGenTextures(1, &texId);
         glBindTexture(GL_TEXTURE_2D, texId);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, 0);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, w, h, 0, GL_RGBA, GL_FLOAT, 0);
         glBindTexture(GL_TEXTURE_2D, 0);
 
         GLuint fbId;
@@ -137,7 +140,6 @@ public:
 
         if (status != GL_FRAMEBUFFER_COMPLETE) {
             switch (status) {
-
                 case GL_FRAMEBUFFER_UNSUPPORTED:
                     printf("FRAMEBUFFER_UNSUPPORTED\n");
                     break;
@@ -170,6 +172,7 @@ public:
         glAttachShader(program, fragment);
 
         glLinkProgram(program);
+        glDeleteShader(vertex);
         glDeleteShader(fragment);
 
         glUseProgram(program);
@@ -190,7 +193,7 @@ public:
         sourceStringLengths[0] = source->length();
         GLuint shader = glCreateShader(type);
 
-        glShaderSource(shader, 1, sourceString, sourceStringLengths); // 1 for string lengths param?
+        glShaderSource(shader, 1, sourceString, sourceStringLengths);
         glCompileShader(shader);
 
         // Check if there were errors
@@ -220,16 +223,14 @@ public:
     }
 
     template<class T>
-    void addUniform (std::string name, T value, std::string type="uniform1f") {
+    void addUniform (std::string name, T value=0, std::string type="uniform1f") {
         int loc = glGetUniformLocation(program, name.c_str());
         uniforms[name] = loc;
 
-        if (value!=NULL) {
-            if (type=="uniform1f") {
-                glUniform1f(loc, value);
-            } else if (type=="uniform1i") {
-                glUniform1i(loc, value);
-            }
+        if (type=="uniform1f") {
+            glUniform1f(loc, value);
+        } else if (type=="uniform1i") {
+            glUniform1i(loc, value);
         }
     }
 
@@ -240,52 +241,48 @@ public:
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
 
-
         if (!ready) {
 
             ready = true;
-            addUniform("texture1", 0, "uniform1i");
+            addUniform("texture0", 0, "uniform1i");
 
-            int textToAdd = texture==textures[textures.size()-1] ? textures.size()-1 : textures.size();
+            int texToAdd = texture==textures[textures.size()-1] ? textures.size()-1 : textures.size();
 
-            for (int t=0; t<textToAdd; t++) {
-                glActiveTexture(GL_TEXTURE1+t);
+            for (int t=0; t<texToAdd; t++) {
+                glActiveTexture(GL_TEXTURE0+t+1);
                 glBindTexture(GL_TEXTURE_2D, textures[t]);
-                addUniform("texture"+std::to_string(t+1), t+1, "uniform1i");
+                addUniform("texture"+std::to_string(t+1), (int)t+1, "uniform1i");
             }
 
             glActiveTexture(GL_TEXTURE0);
+
+            GLenum error = glGetError();
+
+            while (error != GL_NO_ERROR) {
+                switch (error) {
+
+                    case GL_INVALID_ENUM:
+                        printf("GL_INVALID_ENUM\n");
+                        break;
+                    case GL_INVALID_VALUE:
+                        printf("GL_INVALID_VALUE\n");
+                        break;
+                    case GL_INVALID_OPERATION:
+                        printf("GL_INVALID_OPERATION\n");
+                        break;
+                    case GL_INVALID_FRAMEBUFFER_OPERATION:
+                        printf("GL_INVALID_FRAMEBUFFER_OPERATION\n");
+                        break;
+                    case GL_OUT_OF_MEMORY:
+                        printf("GL_OUT_OF_MEMORY\n");
+                        break;
+                }
+
+                error = glGetError();
+            }
         }
 
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-
-
-        // TODO: Move this out of the draw call, it is extremely inefficient
-        GLenum error = glGetError();
-
-        while (error != GL_NO_ERROR) {
-            switch (error) {
-
-                case GL_INVALID_ENUM:
-                    printf("GL_INVALID_ENUM\n");
-                    break;
-                case GL_INVALID_VALUE:
-                    printf("GL_INVALID_VALUE\n");
-                    break;
-                case GL_INVALID_OPERATION:
-                    printf("GL_INVALID_OPERATION\n");
-                    break;
-                case GL_INVALID_FRAMEBUFFER_OPERATION:
-                    printf("GL_INVALID_FRAMEBUFFER_OPERATION\n");
-                    break;
-                case GL_OUT_OF_MEMORY:
-                    printf("GL_OUT_OF_MEMORY\n");
-                    break;
-            }
-
-            error = glGetError();
-        }
     }
 
     float* getPixels (int startX=0, int startY=0, int spanX=-1, int spanY=-1) {
@@ -298,6 +295,11 @@ public:
 
         glReadPixels(startX, startY, spanX, spanY, GL_RGBA, GL_FLOAT, buffer);
         return buffer;
+    }
+
+    void deleteGL () {
+        emscripten_webgl_make_context_current(gl);
+        glDeleteProgram(program);
     }
 };
 
