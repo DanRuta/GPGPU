@@ -1,14 +1,3 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>GPGPU Examples</title>
-    <!-- // <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/1.0.2/Chart.min.js"></script> -->
-    <script src="Chart.min.js"></script>
-    <script src="./GPGPU.js"></script>
-    <script src="wasm-arrays.min.js"></script>
-    <script src="webassembly/webassemblyDemo.js"></script>
-</head>
-<script>
 "use strict"
 
 const example1Fragment = `
@@ -763,60 +752,3 @@ window.addEventListener("load", () => {
         plot(25, 0, 0)
     })
 })
-</script>
-<body>
-    Open the console to see the data logged out, alongside timings (in ms). Change the values below to see the perf diffences with different inputs.<br><br><br>
-    <button id="plotBenchmarkButton">Plot all benchmarks (may take a couple of minutes)</button><br><br>
-
-    Iterations: <input id="counterInput" type="number" min="0" value="10000"><br><br>
-    Map size (square): <input id="mapSizeInput" type="number" min="0" value="1024"><br><br>
-
-    <hr>Identity function (x=x)<br>
-    <button id="benchmarkExample1Button">Plot benchmark</button>
-    <button id="example1GPU">Example 1 (GPU)</button>
-    <button id="example1JS">Example 1 (JS)</button>
-    <button id="example1WAGPU">Example 1 (WebAssembly GPU)</button>
-    <div>
-        <div id="identityChartIterations"></div>
-        <div id="identityChartSize"></div>
-    </div>
-
-    <hr>Quadratic function (x=x*x)<br>
-    <button id="benchmarkExample2Button">Plot benchmark</button>
-    <button id="example2GPU">Example 2 (GPU)</button>
-    <button id="example2JS">Example 2 (JS)</button>
-    <button id="example2WAGPU">Example 2 (WebAssembly GPU)</button>
-    <div>
-        <div id="quadraticChartIterations"></div>
-        <div id="quadraticChartSize"></div>
-    </div>
-
-    <hr>Element-wise addition across 3 identical arrays, + a variable: <input id="varInput" type="number" value="2"> <br>
-    <button id="benchmarkExample3Button">Plot benchmark</button>
-    <button id="example3GPU">Example 3 (GPU)</button>
-    <button id="example3JS">Example 3 (JS)</button>
-    <button id="example3WAGPU">Example 3 (WebAssembly GPU)</button>
-    <div>
-        <div id="ewAdd3p1ChartIterations"></div>
-        <div id="ewAdd3p1ChartSize"></div>
-    </div>
-
-   <!--  <hr>Convolution of a 5x5 kernel (single channel) on a map<br>
-    <button id="example4GPU">Example 4 (GPU)</button>
-    <button id="example4JS">Example 4 (JS)</button>
-    <hr> -->
-
-    <hr>Convolution of a 3x3 kernel (single channel) on a tiny, 5x5 map<br>
-    <button id="benchmarkExample4Button">Plot benchmark</button>
-    <button id="example4GPU">Example 4 (GPU)</button>
-    <button id="example4JS">Example 4 (JS)</button>
-    <button id="example4WAGPU">Example 4 (WebAssembly GPU)</button>
-    <div>
-        <div id="conv3x3_5x5ChartIterations"></div>
-        <div id="conv3x3_5x5ChartSize"></div>
-    </div>
-    <hr>
-    <canvas id="theCanvas" height="128px" width="128px"></canvas>
-
-</body>
-</html>

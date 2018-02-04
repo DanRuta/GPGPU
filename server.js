@@ -9,7 +9,7 @@ http.createServer((request, response) => {
     let path = url.parse(request.url).pathname
     let data
 
-    path = (path=="/"?"/index.html":path)
+    path = (path=="/"?"/example/index.html":path)
 
     console.log(path)
 
