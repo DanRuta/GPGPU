@@ -2,6 +2,8 @@
 <html>
 <head>
     <title>GPGPU Examples</title>
+    <!-- // <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/1.0.2/Chart.min.js"></script> -->
+    <script src="Chart.min.js"></script>
     <script src="./GPGPU.js"></script>
 </head>
 <script>
@@ -69,6 +71,60 @@ const example3Fragment = `
 
     }
 `
+const example4Fragment = `
+    #ifdef GL_FRAGMENT_PRECISION_HIGH
+        precision highp float;
+        uniform highp sampler2D texture1;
+        uniform highp sampler2D texture2; // kernel
+    #else
+        precision mediump float;
+        uniform mediump sampler2D texture1;
+        uniform mediump sampler2D texture2; // kernel
+    #endif
+
+    varying vec2 vTextureCoord;
+    uniform float w;
+
+    void main() {
+
+        const int kSpan = 3;
+        const int spread = kSpan/2;
+
+        // Gather the input values into a map
+        vec4 n[kSpan*kSpan];
+
+        for (int i=-spread; i<=spread; i++) {
+            for (int j=-spread; j<=spread; j++) {
+
+                vec4 value;
+
+                // Zero out values out of bounds
+                if ( (vTextureCoord.x + float(j)*w) > 1.0 ||
+                     (vTextureCoord.x + float(j)*w) < 0.0 ||
+                     (vTextureCoord.y + float(i)*w) > 1.0 ||
+                     (vTextureCoord.y + float(i)*w) < 0.0 ) {
+                    value.r = 0.0;
+                } else {
+                    value = texture2D( texture1, vTextureCoord + vec2(float(j)*w, float(i)*w) );
+                }
+
+                n[(j+spread)+(i+spread)*kSpan] = value;
+            }
+        }
+
+
+        gl_FragColor.r = 0.0;
+
+        float step = 1.0 / float(1 + kSpan);
+
+        // Dot product against the kernel
+        for (int i=0; i<kSpan; i++) {
+            for (int j=0; j<kSpan; j++) {
+                gl_FragColor.r += n[i*kSpan + j].r * texture2D( texture2, vec2(step * float(j+1), step * float(i+1) ) ).r;
+            }
+        }
+    }
+`
 
 let setupTimer
 let timer
@@ -78,6 +134,13 @@ window.addEventListener("load", () => {
     let testData
     let mapSize
     let mapSpan
+    let log = true
+    let times = parseInt(counterInput.value)
+    const kernel = new Float32Array(25*4)
+
+    for (let k=0; k<25; k++) {
+        kernel[k*4] = k
+    }
 
     const generateData = () => {
 
@@ -87,14 +150,12 @@ window.addEventListener("load", () => {
             testData[i] = i
         }
     }
-    mapSize = 2048
+    mapSize = 1024
     mapSpan = Math.sqrt(mapSize)
     generateData()
 
 
-    example1GPU.addEventListener("click", () => {
-
-        const times = parseInt(counterInput.value)
+    window.runExample1GPU = () => {
         setupTimer = Date.now()
 
         const gpu = new GPGPU({height: mapSpan, width: mapSpan})
@@ -111,14 +172,17 @@ window.addEventListener("load", () => {
         }
 
         const end = Date.now()
+        gpu.delete()
 
-        console.log(`Example 1 (GPU - ${times} times): `, gpu.getPixels())
-        console.log(`Elapsed set-up: ${timer-setupTimer}`)
-        console.log(`Elapsed run: ${end-timer}`)
-    })
+        if (log) {
+            console.log(`Example 1 (GPU - ${times} times): `, gpu.getPixels())
+            console.log(`Elapsed set-up: ${timer-setupTimer}`)
+            console.log(`Elapsed run: ${end-timer}`)
+        }
+        return [timer-setupTimer, end-timer]
+    }
 
-    example1JS.addEventListener("click", () => {
-        const times = parseInt(counterInput.value)
+    window.runExample1JS = () => {
         timer = Date.now()
 
         const data = new Float32Array(mapSize*4)
@@ -129,13 +193,14 @@ window.addEventListener("load", () => {
             }
         }
 
-        console.log("Example 1 (GPU) data:", data)
-        console.log(`Elapsed (${times} times): ${Date.now()-timer}`)
-    })
+        if (log) {
+            console.log("Example 1 (GPU) data:", data)
+            console.log(`Elapsed (${times} times): ${Date.now()-timer}`)
+        }
+        return [Date.now()-timer]
+    }
 
-    example2GPU.addEventListener("click", () => {
-
-        const times = parseInt(counterInput.value)
+    window.runExample2GPU = () => {
         setupTimer = Date.now()
 
         const gpu = new GPGPU({height: mapSpan, width: mapSpan})
@@ -154,13 +219,15 @@ window.addEventListener("load", () => {
 
         const end = Date.now()
 
-        console.log(`Example 2 (GPU - ${times} times): `, gpu.getPixels())
-        console.log(`Elapsed set-up: ${timer-setupTimer}`)
-        console.log(`Elapsed run: ${end-timer}`)
-    })
+        if (log) {
+            console.log(`Example 2 (GPU - ${times} times): `, gpu.getPixels())
+            console.log(`Elapsed set-up: ${timer-setupTimer}`)
+            console.log(`Elapsed run: ${end-timer}`)
+        }
+        return [timer-setupTimer, end-timer]
+    }
 
-    example2JS.addEventListener("click", () => {
-        const times = parseInt(counterInput.value)
+    window.runExample2JS = () => {
         timer = Date.now()
 
         const data = new Float32Array(mapSize*4)
@@ -171,13 +238,14 @@ window.addEventListener("load", () => {
             }
         }
 
-        console.log("Example 2 (JS) data:", data)
-        console.log(`Elapsed (${times} times): ${Date.now()-timer}`)
-    })
+        if (log) {
+            console.log("Example 2 (JS) data:", data)
+            console.log(`Elapsed (${times} times): ${Date.now()-timer}`)
+        }
+        return [Date.now()-timer]
+    }
 
-    example3GPU.addEventListener("click", () => {
-
-        const times = parseInt(counterInput.value)
+    window.runExample3GPU = () => {
         setupTimer = Date.now()
 
         const gpu = new GPGPU({height: mapSpan, width: mapSpan})
@@ -200,14 +268,15 @@ window.addEventListener("load", () => {
 
         const end = Date.now()
 
-        console.log(`Example 3 (GPU - ${times} times): `, gpu.getPixels())
-        console.log(`Elapsed set-up: ${timer-setupTimer}`)
-        console.log(`Elapsed run: ${end-timer}`)
-    })
+        if (log) {
+            console.log(`Example 3 (GPU - ${times} times): `, gpu.getPixels())
+            console.log(`Elapsed set-up: ${timer-setupTimer}`)
+            console.log(`Elapsed run: ${end-timer}`)
+        }
+        return [timer-setupTimer, end-timer]
+    }
 
-
-    example3JS.addEventListener("click", () => {
-        const times = parseInt(counterInput.value)
+    window.runExample3JS = () => {
         timer = Date.now()
 
         const data = new Float32Array(mapSize*4)
@@ -219,38 +288,310 @@ window.addEventListener("load", () => {
             }
         }
 
-        console.log("Example 3 (JS) data:", data)
-        console.log(`Elapsed (${times} times): ${Date.now()-timer}`)
-    })
+        if (log) {
+            console.log("Example 3 (JS) data:", data)
+            console.log(`Elapsed (${times} times): ${Date.now()-timer}`)
+        }
+        return [Date.now()-timer]
+    }
+
+    window.runExample4GPU = () => {
+        setupTimer = Date.now()
+
+        // Input
+        const vals = [0,0,2,2,2,
+                      1,1,0,2,0,
+                      1,2,1,1,2,
+                      0,1,2,2,1,
+                      1,2,0,0,1]
+
+
+        const kernelVals = [-1, 0,-1,
+                             1, 0, 1,
+                             1,-1, 0]
+
+        const inputData = new Float32Array(vals.length * 4)
+        const kernel = new Float32Array(kernelVals.length * 4)
+
+        for (let i=0; i<vals.length; i++) {
+            inputData[i*4] = vals[i]
+        }
+
+        for (let i=0; i<kernelVals.length; i++) {
+            kernel[i*4] = kernelVals[i]
+        }
+
+
+        const gpu = new GPGPU({height: 5, width: 5})
+        gpu.makeFrameBuffer()
+        gpu.makeTexture(inputData)
+        gpu.makeTexture(kernel, 3, 3)
+        gpu.buildProgram(example4Fragment)
+
+        gpu.addAttrib("position", {numElements: 3, stride: 20, offset: 0})
+        gpu.addAttrib("textureCoord", {numElements: 2, stride: 20, offset: 12})
+        gpu.addUniform("w", 1/5)
+
+        timer = Date.now()
+
+        for (let t=0; t<times; t++) {
+            gpu.draw()
+        }
+
+        const end = Date.now()
+        const expected = [[-1,2,3,2,4], [0,-2,2,-4,-1], [1,0,-1,3,0], [-2,-1,2,0,0], [1,-1,-1,-2,-2]]
+
+        if (log) {
+            console.log(`Example 3 (GPU - ${times} times): `, gpu.getPixels())
+            console.log(`Elapsed set-up: ${timer-setupTimer}`)
+            console.log(`Elapsed run: ${end-timer}`)
+        }
+        return [timer-setupTimer, end-timer]
+    }
+
+
+    window.runExample4JS = () => {
+        const data = new Float32Array(5*4)
+        timer = Date.now()
+        const inputSpan = 5
+        const kSpan = 3
+        const spread = 1
+        const vals = [0,0,2,2,2,
+                      1,1,0,2,0,
+                      1,2,1,1,2,
+                      0,1,2,2,1,
+                      1,2,0,0,1]
+
+        const kernelVals = [-1, 0,-1,
+                             1, 0, 1,
+                             1,-1, 0]
+
+        const inputData = new Float32Array(vals.length * 4)
+        const kernel = new Float32Array(kernelVals.length * 4)
+
+        for (let i=0; i<vals.length; i++) {
+            inputData[i*4] = vals[i]
+        }
+
+        for (let i=0; i<kernelVals.length; i++) {
+            kernel[i*4] = kernelVals[i]
+        }
+
+
+        // For every pixel
+        for (let y=0; y<inputSpan; y++) {
+            for (let x=0; x<inputSpan; x++) {
+
+                let sum = 0
+                const n = []
+
+                // Gather input data
+                for (let j=-spread; j<=spread; j++) {
+                    for (let k=-spread; k<=spread; k++) {
+
+                        const yCoord = y + j
+                        const xCoord = x + k
+
+                        if (yCoord >= 0 && yCoord < inputSpan &&
+                            xCoord >= 0 && xCoord < inputSpan) {
+                            n[(j+spread)*kSpan+(k+spread)] = inputData[(yCoord*inputSpan + xCoord) * 4]
+                        } else {
+                            n[(j+spread)*kSpan+(k+spread)] = 0
+                        }
+                    }
+                }
+
+                for (let j=0; j<kSpan; j++) {
+                    for (let k=0; k<kSpan; k++) {
+                        sum += kernel[(j*kSpan+k) * 4] * n[j*kSpan+k]
+                    }
+                }
+
+                data[(y*inputSpan+x) * 4 ] = sum
+            }
+        }
+
+        if (log) {
+            console.log("Example 4 (JS) data:", data)
+            console.log(`Elapsed (${times} times): ${Date.now()-timer}`)
+        }
+
+        return [Date.now()-timer]
+    }
+
+    example1GPU.addEventListener("click", runExample1GPU)
+    example1JS.addEventListener("click", runExample1JS)
+
+    example2GPU.addEventListener("click", runExample2GPU)
+    example2JS.addEventListener("click", runExample2JS)
+
+    example3GPU.addEventListener("click", runExample3GPU)
+    example3JS.addEventListener("click", runExample3JS)
+
+    example4GPU.addEventListener("click", runExample4GPU)
+    example4JS.addEventListener("click", runExample4JS)
 
 
     mapSizeInput.addEventListener("change", () => {
         mapSize = parseInt(mapSizeInput.value)
         generateData()
     })
+
     mapSizeInput.addEventListener("keyup", () => {
         mapSize = parseInt(mapSizeInput.value)
         generateData()
     })
+
+    counterInput.addEventListener("change", () => {
+        times = parseInt(counterInput.value)
+        generateData()
+    })
+
+    counterInput.addEventListener("keyup", () => {
+        times = parseInt(counterInput.value)
+        generateData()
+    })
+
+    plotBenchmarkButton.addEventListener("click", () => {
+        log = false
+
+        const makeChart = () => {
+
+            const canvas = document.createElement("canvas")
+            canvas.width = window.innerWidth * 0.4
+            canvas.height = 300
+
+            return [canvas, new Chart(canvas.getContext("2d"), {
+                type: "line",
+                data: {
+                    datasets: [{
+                        label: "GPU",
+                        data: [],
+                        pointRadius: 0
+                    },{
+                        label: "GPU (set-up time)",
+                        borderDash: [5, 5],
+                        data: [],
+                        pointRadius: 0
+                    },{
+                        label: "JS",
+                        data: [],
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    scales: {
+                        xAxes: [{
+                            type: "linear",
+                            position: "bottom"
+                        }],
+                        yAxes: [{
+                            ticks: {
+                                beginAtZero: true
+                            }
+                        }]
+                    },
+                    tooltips: {
+                        enabled: false
+                    },
+                    responsive: false
+                }
+            })]
+        }
+
+
+        const plot = (i, chartI) => {
+
+            times = Math.floor(Math.pow(2, i/6)) // or 4
+            const [setUp, elapsed] = window[`runExample${chartI+1}GPU`]()
+            const [jsElapsed] = window[`runExample${chartI+1}JS`]()
+
+            charts[chartI].data.datasets[0].data.push({x: times, y: elapsed})
+            charts[chartI].data.datasets[1].data.push({x: times, y: setUp})
+            charts[chartI].data.datasets[2].data.push({x: times, y: jsElapsed})
+
+            charts[chartI].update()
+
+            if (++i<=100) {
+                setTimeout(() => plot(i, chartI), 0)
+            } else {
+                if (chartI<charts.length-1) {
+                    setTimeout(() => plot(25, chartI+1), 0)
+                } else {
+                    times = parseInt(counterInput.value)
+                    log = true
+                }
+            }
+        }
+
+        const charts = []
+
+        const [iterationsCanvas, identityChart] = makeChart()
+        identityChartIterations.appendChild(iterationsCanvas)
+
+        const [quadraticCanvas, quadraticChart] = makeChart()
+        quadraticChartIterations.appendChild(quadraticCanvas)
+
+        const [ewAdd3p1Canvas, ewAdd3p1Chart] = makeChart()
+        ewAdd3p1ChartIterations.appendChild(ewAdd3p1Canvas)
+
+        const [conv3x3_5x5Canvas, conv3x3_5x5Chart] = makeChart()
+        conv3x3_5x5ChartIterations.appendChild(conv3x3_5x5Canvas)
+
+
+        charts.push(identityChart)
+        charts.push(quadraticChart)
+        charts.push(ewAdd3p1Chart)
+        charts.push(conv3x3_5x5Chart)
+
+        plot(25, 0)
+
+    })
 })
 </script>
 <body>
-Open the console to see the data logged out, alongside timings (in ms). Change the values below to see the perf diffences with different inputs.<br><br><br>
+    Open the console to see the data logged out, alongside timings (in ms). Change the values below to see the perf diffences with different inputs.<br><br><br>
+    <button id="plotBenchmarkButton">Plot all benchmarks (may take a minute)</button><br><br>
 
     Iterations: <input id="counterInput" type="number" min="0" value="10000"><br><br>
-    Map size (square): <input id="mapSizeInput" type="number" min="0" value="2048"><br><br>
+    Map size (square): <input id="mapSizeInput" type="number" min="0" value="1024"><br><br>
 
     <hr>Identity function (x=x)<br>
     <button id="example1GPU">Example 1 (GPU)</button>
     <button id="example1JS">Example 1 (JS)</button>
+    <div>
+        <div id="identityChartIterations"></div>
+        <div id="identityChartSize"></div>
+    </div>
 
     <hr>Quadratic function (x=x*x)<br>
     <button id="example2GPU">Example 2 (GPU)</button>
     <button id="example2JS">Example 2 (JS)</button>
+    <div>
+        <div id="quadraticChartIterations"></div>
+        <div id="quadraticChartSize"></div>
+    </div>
 
     <hr>Element-wise addition across 3 identical arrays, + a variable: <input id="varInput" type="number" value="2"> <br>
     <button id="example3GPU">Example 3 (GPU)</button>
     <button id="example3JS">Example 3 (JS)</button>
+    <div>
+        <div id="ewAdd3p1ChartIterations"></div>
+        <div id="ewAdd3p1ChartSize"></div>
+    </div>
+
+   <!--  <hr>Convolution of a 5x5 kernel (single channel) on a map<br>
+    <button id="example4GPU">Example 4 (GPU)</button>
+    <button id="example4JS">Example 4 (JS)</button>
+    <hr> -->
+
+    <hr>Convolution of a 3x3 kernel (single channel) on a tiny, 5x5 map (example where JS is many times quicker)<br>
+    <button id="example4GPU">Example 4 (GPU)</button>
+    <button id="example4JS">Example 4 (JS)</button>
+    <div>
+        <div id="conv3x3_5x5ChartIterations"></div>
+        <div id="conv3x3_5x5ChartSize"></div>
+    </div>
     <hr>
 
 </body>

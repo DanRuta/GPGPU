@@ -25,13 +25,12 @@ const compile = () => {
     const tasks = []
 
     for (const dir of toChange) {
-        const solNum = dir.split("\\")[0]
+        const file = dir.split("\\")[0]
 
         tasks.push(new Promise((resolve, reject) => {
 
-            // const command = `g++ -std=c++17 solutions/${solNum}/main.cpp -o solutions/${solNum}/out`
             const command = `C:/emsdk/emsdk_env.bat & echo Building... & emcc -o ./webassembly/webassemblyDemo.js ./webassembly/webassemblyDemo.cpp -O3 -s DISABLE_EXCEPTION_CATCHING=2 -s WASM=1 -s NO_EXIT_RUNTIME=1 -std=c++14`
-            console.log(`[${solNum}] Running...  `, `\x1b[4m${command}\x1b[0m`)
+            console.log(`[${file}] Running...  `, `\x1b[4m${command}\x1b[0m`)
 
             exec(command, (error, stdout, stderr) => {
 

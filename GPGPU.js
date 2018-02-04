@@ -48,7 +48,7 @@ class GPGPU {
         }
     }
 
-    makeTexture (data) {
+    makeTexture (data, width=this.width, height=this.height) {
 
         this.textures.push(this.gl.createTexture())
         this.gl.bindTexture(this.gl.TEXTURE_2D, this.textures[this.textures.length-1])
@@ -58,7 +58,7 @@ class GPGPU {
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE)
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE)
 
-        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.width, this.height, 0, this.gl.RGBA, this.gl.FLOAT, data)
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, width, height, 0, this.gl.RGBA, this.gl.FLOAT, data)
     }
 
     makeFrameBuffer (width=this.width, height=this.height) {
@@ -69,7 +69,7 @@ class GPGPU {
         this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, width, height, 0, this.gl.RGBA, this.gl.FLOAT, null)
         this.gl.bindTexture(this.gl.TEXTURE_2D, null)
 
-        this.framebuffer  = this.gl.createFramebuffer()
+        this.framebuffer = this.gl.createFramebuffer()
         this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.framebuffer)
         this.gl.framebufferTexture2D(this.gl.FRAMEBUFFER, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_2D, texture, 0)
 
@@ -171,5 +171,13 @@ class GPGPU {
 
     delete () {
         this.gl.deleteProgram(this.program)
+        this.gl.deleteFramebuffer(this.framebuffer)
+
+        for (let t=0; t<this.textures.length; t++) {
+            this.gl.deleteTexture(this.textures[t])
+        }
+
+        this.gl.getExtension("WEBGL_lose_context").loseContext()
+        delete this.gl
     }
 }
