@@ -69,6 +69,7 @@ public:
         }
     )V0G0N";
 
+    // TODO, accept existing context as parameter
     GPGPU(int h, int w) {
 
         height = h;
@@ -80,17 +81,19 @@ public:
         attrs.depth = 1;
         attrs.stencil = 1;
         attrs.antialias = 1;
-        attrs.majorVersion = 2; // not 3?
+        attrs.majorVersion = 2;
         attrs.minorVersion = 0;
 
         char id[10] = "theCanvas";
         gl = emscripten_webgl_create_context(id, &attrs);
         emscripten_webgl_make_context_current(gl);
 
-
         // Check for the OES_texture_float extension support
-        // TODO
+        std::string availableExtensions = std::string((char*)glGetString(GL_EXTENSIONS));
 
+        if (availableExtensions.find("OES_texture_float") == std::string::npos) {
+            printf("Floating point textures not supported\n");
+        }
     };
 
     ~GPGPU() {

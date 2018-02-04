@@ -89,9 +89,10 @@ float* out = gpu.getPixels();
 gpu.deleteGL();
 ```
 
-## JavaScript
+## API
 
-#### GPGPU({gl, height, width})
+### JS: GPGPU({gl, height, width})
+### C++: GPGPU(height, width)
 _int_ **height** - Height of the context in pixels (not used when gl is given)
 _int_ **width** - Width of the context in pixels (not used when gl is given)
 _webgl context_ **gl** - Use an existing context. The height and width will be set to the given gl context's. (optional)
@@ -99,20 +100,20 @@ _webgl context_ **gl** - Use an existing context. The height and width will be s
 This will create the webgl context with the given size.
 
 
-#### makeFrameBuffer(), makeFrameBuffer(width, height)
+### makeFrameBuffer(), makeFrameBuffer(width, height)
 _int_ **height** - Height of the frameBuffer in pixels (optional - will default to the context height)
 _int_ **width** - Width of the frameBuffer in pixels (optional - will default to the context width)
 
 This will init the outgoing array data. If your shader increases/reduces the data cardinality, you can set the size of the framebuffer to something bigger/smaller.
 
-#### makeTexture(data),  makeTexture(data, width, height)
+### makeTexture(data),  makeTexture(data, width, height)
 _Float32Array_ **data** - The data buffer to be read as a texture by the shader
 _int_ **height** - Height of the texture in pixels (optional - will default to the context height)
 _int_ **width** - Width of the texture in pixels (optional - will default to the context width)
 
 This will add a texture (incoming data array) to the computation. You can call this several times, with different arrays, for multiple arrays/textures to be loaded by the shader. When writing your shader, you will be able to access your textures incrementally, as ```texture0```, ```texture1```, ```texture2```, etc. You can set different dimensions if their size differs from the context's (eg a second, kernel texture).
 
-#### buildProgram(fragment), buildProgram(fragment, vertex)
+### buildProgram(fragment), buildProgram(fragment, vertex)
 _string_ **fragment** - The GLSL fragment shader to carry out the compute for each pixel
 _string_ **vertex** - The GLSL vertex shader (Optional) This defaults to a standard vertex shader:
 ```glsl
@@ -128,7 +129,8 @@ void main() {
 ```
 This will bind the two shaders to the context, compile them, and throw any errors.
 
-#### addAttrib(name), addAttrib(name, {numElements, stride, offset})
+### JS: addAttrib(name), addAttrib(name, {numElements, stride, offset})
+### C++: addAttrib(name), addAttrib(name, numElements, stride, offset)
 _string_ **name** - The name of the attribute
 _int_ **numElements** - How many elements in the vector (Optional - will default to 3). Can be 1-4.
 _int_ **stride** - The stride in bytes (Optional - will default to 20)
@@ -136,19 +138,19 @@ _int_ **offset** - Pointer/offset (Optional - will default to 0)
 
 This will set a read-only global variable which may change per vertex (used in the vertex shader).
 
-#### addUniform(name), addUniform(name, value), addUniform(name, value, type)
+### addUniform(name), addUniform(name, value), addUniform(name, value, type)
 _string_ **name** - The name of the uniform
 _number_ **value** - The value assigned to the uniform
 _string_ **type** - Override for the function used to set the uniform (Optional - defaults to "uniform1f")
 
 This will set a global variable for use in the fragment shader. It is unchanged for the entire draw call.
 
-#### draw(), draw(texture)
+### draw(), draw(texture)
 _webgl texture_ **texture** - You can set a different GPGPU's framebuffer as an input, and the shader will take it as input , instead of the first given texture (Optional)
 
 This will bind all the textures (once) and will run the shaders on the input texture(s).
 
-#### getPixels(), getPixels(startX, startY, spanX, spanY)
+### getPixels(), getPixels(startX, startY, spanX, spanY)
 _int_ **startX** - The x position in the framebuffer to start reading from (Optional - will default to 0)
 _int_ **startY** - The y position in the framebuffer to start reading from (Optional - will default to 0)
 _int_ **spanX** - How many x pixels to read from the framebuffer (Optional - will default to the end)
@@ -156,7 +158,7 @@ _int_ **spanY** - How many y pixels to read from the framebuffer (Optional - wil
 
 Once the ```draw()``` function was called, this can be used to read the data from the framebuffer.
 
-#### delete()
+### delete() - C++: deleteGL()
 
 This will clean up by deleting the context and associated data.
 
@@ -164,8 +166,6 @@ This will clean up by deleting the context and associated data.
 
 Run ```node server``` and go to ```localhost:1337``` to see some basic demos with performance comparison vs javascript.
 
-
-
-## Documentation to follow soon™
+## Compiling
 
 To edit/compile the C++ demo, first run ```node runner.js``` to watch for file changes and automatically compile.
