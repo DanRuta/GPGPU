@@ -11,7 +11,6 @@ window.addEventListener("load", () => {
     let log = true
     let times = parseInt(counterInput.value)
     let charts = []
-    // const kernel = new Float32Array(25*4)
 
     const vals = [0,0,2,2,2,
                   1,1,0,2,0,
@@ -33,40 +32,6 @@ window.addEventListener("load", () => {
     for (let i=0; i<kernelVals.length; i++) {
         kernel[i*4] = kernelVals[i]
     }
-
-    // for (let k=0; k<25; k++) {
-    //     kernel[k*4] = k
-    // }
-
-
-
-
-    // const vals = [0,0,2,2,2,
-    //               1,1,0,2,0,
-    //               1,2,1,1,2,
-    //               0,1,2,2,1,
-    //               1,2,0,0,1]
-
-
-    // const kernelVals = [-1, 0,-1,
-    //                      1, 0, 1,
-    //                      1,-1, 0]
-
-    // const inputData = new Float32Array(vals.length * 4)
-    // const kernel = new Float32Array(kernelVals.length * 4)
-
-    // for (let i=0; i<vals.length; i++) {
-    //     inputData[i*4] = vals[i]
-    // }
-
-    // for (let i=0; i<kernelVals.length; i++) {
-    //     kernel[i*4] = kernelVals[i]
-    // }
-
-
-
-
-
 
 
     const generateData = () => {
@@ -528,21 +493,21 @@ window.addEventListener("load", () => {
 
     const plot = (i, chartI, egI) => {
         log = false
-        times = Math.floor(Math.pow(2, i/6)) // or 4
+        times = Math.min(Math.floor(Math.pow(2, i/6)), parseInt(maxPlotItsInput.value))
         const [setUp, elapsed] = window[`runExample${egI+1}GPU`]()
         const [jsElapsed] = window[`runExample${egI+1}JS`]()
-        const [waSetUp, waElapsed] = window[`runExample${egI+1}WAGPU`]()
+        const [waGPUSetUp, waGPUElapsed] = window[`runExample${egI+1}WAGPU`]()
 
         charts[chartI].data.datasets[0].data.push({x: times, y: elapsed})
         charts[chartI].data.datasets[1].data.push({x: times, y: setUp})
         charts[chartI].data.datasets[2].data.push({x: times, y: jsElapsed})
-        charts[chartI].data.datasets[3].data.push({x: times, y: waSetUp})
-        charts[chartI].data.datasets[4].data.push({x: times, y: waElapsed})
+        charts[chartI].data.datasets[3].data.push({x: times, y: waGPUSetUp})
+        charts[chartI].data.datasets[4].data.push({x: times, y: waGPUElapsed})
 
         if (window[`runExample${egI+1}WA`]) {
             const [waSetUp, waElapsed] = window[`runExample${egI+1}WA`]()
-            charts[chartI].data.datasets[5].data.push({x: times, y: waSetUp})
-            charts[chartI].data.datasets[6].data.push({x: times, y: waElapsed})
+            charts[chartI].data.datasets[5].data.push({x: times, y: waElapsed})
+            charts[chartI].data.datasets[6].data.push({x: times, y: waSetUp})
         }
 
         charts[chartI].update()
