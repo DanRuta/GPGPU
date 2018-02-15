@@ -13,8 +13,9 @@ The general structure of the set up code is as follows:
 4. Build program with your shader(s)
 5. Add any attribs/uniform variables you need in your shaders
 6. Run the computations (draw)
-7. Read the data
-8. Delete to clean up
+7. Update the texture data, if needed
+8. Read the data
+9. Delete to clean up
 
 ##### Quick JavaScript example:
 ```javascript
@@ -45,8 +46,12 @@ gpu.addAttrib("textureCoord", {numElements: 2, stride: 20, offset: 12})
 // 6
 gpu.draw()
 // 7
-const results = gpu.getPixels()
+testData[0]++
+gpu.updateTexture(0, testData)
+gpu.draw()
 // 8
+const results = gpu.getPixels()
+// 9
 gpu.delete()
 ```
 
@@ -112,6 +117,12 @@ _int_ **height** - Height of the texture in pixels (optional - will default to t
 _int_ **width** - Width of the texture in pixels (optional - will default to the context width)
 
 This will add a texture (incoming data array) to the computation. You can call this several times, with different arrays, for multiple arrays/textures to be loaded by the shader. When writing your shader, you will be able to access your textures incrementally, as ```texture0```, ```texture1```, ```texture2```, etc. You can set different dimensions if their size differs from the context's (eg a second, kernel texture).
+
+### updateTexture(data), updateTexture(data, index)
+_int_ **index** - The index of the texture to replace. Defaults to 0.
+_Float32Array_ **data** - The data buffer to update with
+
+This will update the data used as a texture. The index of the texture matches the order in which the textures were defined.
 
 ### buildProgram(fragment), buildProgram(fragment, vertex)
 _string_ **fragment** - The GLSL fragment shader to carry out the compute for each pixel

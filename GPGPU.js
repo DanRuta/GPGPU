@@ -50,8 +50,8 @@ class GPGPU {
 
     makeTexture (data, width=this.width, height=this.height) {
 
-        this.textures.push(this.gl.createTexture())
-        this.gl.bindTexture(this.gl.TEXTURE_2D, this.textures[this.textures.length-1])
+        this.textures.push({tex: this.gl.createTexture(), width, height})
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.textures[this.textures.length-1].tex)
 
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST)
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST)
@@ -59,6 +59,12 @@ class GPGPU {
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE)
 
         this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, width, height, 0, this.gl.RGBA, this.gl.FLOAT, data)
+    }
+
+    updateTexture (data, index=0) {
+        const tex = this.textures[index]
+        this.gl.bindTexture(this.gl.TEXTURE_2D, tex.tex)
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, tex.width, tex.height, 0, this.gl.RGBA, this.gl.FLOAT, data)
     }
 
     makeFrameBuffer (width=this.width, height=this.height) {
@@ -143,7 +149,7 @@ class GPGPU {
     draw (texture=this.textures[this.textures.length-1]) {
 
         this.gl.activeTexture(this.gl.TEXTURE0)
-        this.gl.bindTexture(this.gl.TEXTURE_2D, texture)
+        this.gl.bindTexture(this.gl.TEXTURE_2D, texture.tex)
 
         if (!this.ready) {
 
@@ -154,7 +160,7 @@ class GPGPU {
 
             for (let t=0; t<texToAdd; t++) {
                 this.gl.activeTexture(this.gl[`TEXTURE${t+1}`])
-                this.gl.bindTexture(this.gl.TEXTURE_2D, this.textures[t])
+                this.gl.bindTexture(this.gl.TEXTURE_2D, this.textures[t].tex)
                 this.addUniform(`texture${t+1}`, t+1, "uniform1i")
             }
 
@@ -175,7 +181,8 @@ class GPGPU {
         this.gl.deleteFramebuffer(this.framebuffer)
 
         for (let t=0; t<this.textures.length; t++) {
-            this.gl.deleteTexture(this.textures[t])
+            this.gl.deleteTexture(this.textures[t].tex)
+            this.textures.splice(t, 1)
         }
 
         this.gl.getExtension("WEBGL_lose_context").loseContext()

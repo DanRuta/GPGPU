@@ -59,6 +59,9 @@ window.addEventListener("load", () => {
         timer = Date.now()
 
         for (let t=0; t<times; t++) {
+            // testData[0]++
+            // gpu.updateTexture(0, testData)
+            // console.log(gpu.getPixels())
             gpu.draw()
         }
 

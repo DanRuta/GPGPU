@@ -36,6 +36,20 @@ extern "C" {
 
 }
 
+class Tex {
+public:
+
+    GLuint texId;
+    int width;
+    int height;
+
+    Tex (GLuint id, int w, int h) {
+        texId = id;
+        width = w;
+        height = h;
+    }
+};
+
 class GPGPU {
 public:
 
@@ -46,7 +60,7 @@ public:
     std::unordered_map<std::string, int> uniforms;
 
     GLuint program;
-    std::vector<int> textures;
+    std::vector<Tex> textures;
 
     EMSCRIPTEN_WEBGL_CONTEXT_HANDLE gl;
 
@@ -70,7 +84,7 @@ public:
     )V0G0N";
 
     // TODO, accept existing context as parameter
-    GPGPU(int h, int w) {
+    GPGPU (int h, int w) {
 
         height = h;
         width = w;
@@ -119,7 +133,14 @@ public:
         glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
         glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA32F, w, h, 0, GL_RGBA, GL_FLOAT, buffer);
-        textures.push_back(texId);
+        Tex tex = Tex(texId, w, h);
+        textures.push_back(tex);
+    }
+
+    void updateTexture (float* buffer, int textureIndex=0) {
+        Tex tex = textures[textureIndex];
+        glBindTexture(GL_TEXTURE_2D, tex.texId);
+        glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA32F, tex.width, tex.height, 0, GL_RGBA, GL_FLOAT, buffer);
     }
 
     void makeFrameBuffer (void) {
@@ -237,23 +258,27 @@ public:
         }
     }
 
-    void draw (int texture=-1) {
+    void draw (int textureIndex=-1) {
 
-        if (texture==-1) texture = textures[textures.size()-1];
+        Tex texture = textures[textures.size()-1];
+
+        if (textureIndex!=-1) {
+            texture = textures[textureIndex];
+        }
 
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture);
+        glBindTexture(GL_TEXTURE_2D, texture.texId);
 
         if (!ready) {
 
             ready = true;
             addUniform("texture0", 0, "uniform1i");
 
-            int texToAdd = texture==textures[textures.size()-1] ? textures.size()-1 : textures.size();
+            int texToAdd = textureIndex==textures.size()-1 ? textures.size()-1 : textures.size();
 
             for (int t=0; t<texToAdd; t++) {
                 glActiveTexture(GL_TEXTURE0+t+1);
-                glBindTexture(GL_TEXTURE_2D, textures[t]);
+                glBindTexture(GL_TEXTURE_2D, textures[t].texId);
                 addUniform("texture"+std::to_string(t+1), (int)t+1, "uniform1i");
             }
 
@@ -303,6 +328,7 @@ public:
     void deleteGL () {
         emscripten_webgl_make_context_current(gl);
         glDeleteProgram(program);
+        textures.clear();
     }
 };
 
