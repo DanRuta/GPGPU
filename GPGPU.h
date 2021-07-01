@@ -231,8 +231,6 @@ public:
             // And print them out
             glGetShaderInfoLog(shader, infoLen, NULL, infoLog);
             printf("%s\n", infoLog);
-
-            free(infoLog);
         }
 
         return shader;
